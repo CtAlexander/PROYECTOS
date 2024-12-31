@@ -1388,8 +1388,8 @@ recognition.lang = 'es-ES';
 
 let currentUserName = "";
 let listening = false; // Controla si Alfa está escuchando
-let isSpeaking = false; // Controla si Alfa está hablando
 const synth = window.speechSynthesis; // Síntesis de voz
+let isSpeaking = false; // Controla si Alfa está hablando
 
 // Función para inicializar Alfa
 async function initializeAlfa() {
@@ -1404,7 +1404,7 @@ async function initializeAlfa() {
 
     if (userDoc.exists()) {
         currentUserName = userDoc.data().nombre;
-        speak(`Hola ${currentUserName}, soy Alfa. Estoy lista para ayudarte.`);
+        speak(`Hola ${currentUserName}, soy Alfa. Estoy listo para ayudarte.`);
     } else {
         speak("No se encontraron datos del usuario.");
     }
@@ -1414,11 +1414,7 @@ async function initializeAlfa() {
 
 // Manejo de resultados de voz
 recognition.onresult = (event) => {
-    if (isSpeaking) {
-        // Ignorar comandos mientras Alfa está hablando
-        console.log("Ignorando comandos mientras Alfa habla.");
-        return;
-    }
+    if (isSpeaking) return; // Evitar procesar comandos mientras Alfa está hablando
 
     const command = event.results[0][0].transcript.toLowerCase();
     handleCommand(command);
@@ -1517,24 +1513,6 @@ function handleUploadCommand(command) {
     });
 }
 
-// Buscar un archivo en Firestore por nombre
-async function buscarArchivo(nombreArchivo) {
-    try {
-        const querySnapshot = await getDocs(collection(db, 'files'));
-        const archivos = [];
-        querySnapshot.forEach((doc) => {
-            const archivo = doc.data();
-            if (archivo.name.toLowerCase().includes(nombreArchivo)) {
-                archivos.push(archivo);
-            }
-        });
-        return archivos;
-    } catch (error) {
-        console.error('Error al buscar el archivo:', error);
-    }
-    return [];
-}
-
 // Subir archivo a una pestaña específica
 async function subirArchivoAPestaña(archivo, pestañaDestino) {
     const collectionName = getCollectionNameFromTab(pestañaDestino);
@@ -1557,6 +1535,24 @@ async function subirArchivoAPestaña(archivo, pestañaDestino) {
     }
 }
 
+// Buscar un archivo en Firestore por nombre
+async function buscarArchivo(nombreArchivo) {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'files'));
+        const archivos = [];
+        querySnapshot.forEach((doc) => {
+            const archivo = doc.data();
+            if (archivo.name.toLowerCase().includes(nombreArchivo)) {
+                archivos.push(archivo);
+            }
+        });
+        return archivos;
+    } catch (error) {
+        console.error('Error al buscar el archivo:', error);
+    }
+    return [];
+}
+
 // Obtener el nombre de la colección Firestore según la pestaña
 function getCollectionNameFromTab(tabName) {
     switch (tabName) {
@@ -1570,15 +1566,15 @@ function getCollectionNameFromTab(tabName) {
 
 // Mostrar el contenido de una pestaña
 function showTabContent(tabId) {
-    const tabContents = document.querySelectorAll('.tab-content');
-    const tabs = document.querySelectorAll('.tabs div');
+    const tabContents = document.querySelectorAll('.tab-content'); // Contenido de todas las pestañas
+    const tabs = document.querySelectorAll('.tabs div'); // Botones de todas las pestañas
 
-    // Ocultar todas las pestañas
+    // Ocultar todas las pestañas y desactivar sus botones
     tabContents.forEach((content) => {
         content.classList.remove('active');
+        content.style.display = 'none'; // Asegurar que no queden visibles
     });
 
-    // Desactivar todas las pestañas
     tabs.forEach((tab) => {
         tab.classList.remove('active');
     });
@@ -1589,6 +1585,7 @@ function showTabContent(tabId) {
 
     if (activeContent) {
         activeContent.classList.add('active');
+        activeContent.style.display = 'block'; // Asegurar que se muestre correctamente
     } else {
         console.error(`No se encontró el contenido de la pestaña con ID: ${tabId}`);
     }
@@ -1621,12 +1618,12 @@ function loadMapaProcesos() {
 
 // Función para que Alfa hable
 function speak(text) {
-    isSpeaking = true; // Activar bandera de "hablando"
+    isSpeaking = true;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
 
     utterance.onend = () => {
-        isSpeaking = false; // Desactivar bandera al terminar de hablar
+        isSpeaking = false;
     };
 
     synth.speak(utterance);
@@ -1637,7 +1634,6 @@ alfaAssistant.addEventListener('click', () => {
     listening = true; // Activar escucha
     initializeAlfa();
 });
-
 
 
 
