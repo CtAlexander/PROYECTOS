@@ -1388,6 +1388,7 @@ recognition.lang = 'es-ES';
 
 let currentUserName = "";
 let listening = false; // Controla si Alfa está escuchando
+let isSpeaking = false; // Controla si Alfa está hablando
 const synth = window.speechSynthesis; // Síntesis de voz
 
 // Función para inicializar Alfa
@@ -1403,7 +1404,7 @@ async function initializeAlfa() {
 
     if (userDoc.exists()) {
         currentUserName = userDoc.data().nombre;
-        speak(`Hola ${currentUserName}, soy Alfa. Estoy listo para ayudarte.`);
+        speak(`Hola ${currentUserName}, soy Alfa. Estoy lista para ayudarte.`);
     } else {
         speak("No se encontraron datos del usuario.");
     }
@@ -1413,6 +1414,12 @@ async function initializeAlfa() {
 
 // Manejo de resultados de voz
 recognition.onresult = (event) => {
+    if (isSpeaking) {
+        // Ignorar comandos mientras Alfa está hablando
+        console.log("Ignorando comandos mientras Alfa habla.");
+        return;
+    }
+
     const command = event.results[0][0].transcript.toLowerCase();
     handleCommand(command);
 };
@@ -1510,6 +1517,57 @@ function handleUploadCommand(command) {
     });
 }
 
+// Buscar un archivo en Firestore por nombre
+async function buscarArchivo(nombreArchivo) {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'files'));
+        const archivos = [];
+        querySnapshot.forEach((doc) => {
+            const archivo = doc.data();
+            if (archivo.name.toLowerCase().includes(nombreArchivo)) {
+                archivos.push(archivo);
+            }
+        });
+        return archivos;
+    } catch (error) {
+        console.error('Error al buscar el archivo:', error);
+    }
+    return [];
+}
+
+// Subir archivo a una pestaña específica
+async function subirArchivoAPestaña(archivo, pestañaDestino) {
+    const collectionName = getCollectionNameFromTab(pestañaDestino);
+    if (!collectionName) {
+        speak(`No reconozco la pestaña "${pestañaDestino}".`);
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, collectionName), {
+            name: archivo.name,
+            url: archivo.url,
+            code: archivo.code || "Código no especificado",
+            date: new Date().toLocaleDateString()
+        });
+        speak(`Archivo "${archivo.name}" subido a la pestaña "${pestañaDestino}".`);
+    } catch (error) {
+        console.error("Error al subir el archivo:", error);
+        speak("Hubo un error al intentar subir el archivo.");
+    }
+}
+
+// Obtener el nombre de la colección Firestore según la pestaña
+function getCollectionNameFromTab(tabName) {
+    switch (tabName) {
+        case 'listas': return 'files-lists';
+        case 'formatos': return 'files-formats';
+        case 'requisitos': return 'files-requisitos';
+        case 'procedimientos': return 'files-procedimientos';
+        default: return null;
+    }
+}
+
 // Mostrar el contenido de una pestaña
 function showTabContent(tabId) {
     const tabContents = document.querySelectorAll('.tab-content');
@@ -1542,7 +1600,6 @@ function showTabContent(tabId) {
     }
 }
 
-
 // Función para cargar el mapa de procesos
 function loadMapaProcesos() {
     const imgMapaProcesos = document.getElementById("mapa-procesos-img");
@@ -1562,13 +1619,16 @@ function loadMapaProcesos() {
         });
 }
 
-
-
-
 // Función para que Alfa hable
 function speak(text) {
+    isSpeaking = true; // Activar bandera de "hablando"
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
+
+    utterance.onend = () => {
+        isSpeaking = false; // Desactivar bandera al terminar de hablar
+    };
+
     synth.speak(utterance);
 }
 
@@ -1577,7 +1637,6 @@ alfaAssistant.addEventListener('click', () => {
     listening = true; // Activar escucha
     initializeAlfa();
 });
-
 
 
 
