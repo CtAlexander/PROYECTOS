@@ -1011,7 +1011,7 @@ iframe {
     <div class="dropdown-menu" id="dropdown-menu">
         <a href="#" id="viewProfile">Ver mi perfil</a>
         <a href="#" id="openOrgChart">Ver mi puesto y responsabilidades</a>
-         <a href="#" id="alfaAssistant">🤖 Alfa</a>
+         <a href="#" id="alfaAssistant">🤖AL</a>
         <a href="#" id="logout">Cerrar sesión</a>
         
     </div>
@@ -1435,6 +1435,8 @@ function handleCommand(command) {
     } else if (listening) {
         if (command.includes('abrir pestaña')) {
             handleTabCommand(command);
+        } else if (command.includes('cerrar sesión')) {
+            handleLogoutCommand();
         } else if (command.includes('abrir archivo')) {
             handleFileCommand(command);
         } else if (command.includes('sube un archivo')) {
@@ -1450,31 +1452,38 @@ function handleCommand(command) {
 
 // Manejar comandos para abrir pestañas
 function handleTabCommand(command) {
-    if (command.includes('listas')) {
-        showTabContent('lists');
-        speak("Abriendo la pestaña de listas.");
-    } else if (command.includes('formatos')) {
-        showTabContent('files');
-        speak("Abriendo la pestaña de formatos.");
-    } else if (command.includes('requisitos')) {
-        showTabContent('requisitos');
-        speak("Abriendo la pestaña de requisitos.");
-    } else if (command.includes('inicio')) {
-        showTabContent('home');
-        speak("Abriendo la pestaña de inicio.");
-    } else if (command.includes('mapa')) {
-        showTabContent('content-mapa');
-        loadMapaProcesos();
-        speak("Abriendo el mapa de procesos.");
-    } else if (command.includes('procedimientos')) {
-        showTabContent('procedimientos');
-        speak("Abriendo la pestaña de procedimientos.");
-    } else if (command.includes('inocuidad')) {
-        showTabContent('inocuidad');
-        speak("Abriendo la política de inocuidad.");
-    } else {
-        speak(`Lo siento ${currentUserName}, no encontré esa pestaña.`);
+    const tabs = {
+        'listas': 'lists',
+        'formatos': 'files',
+        'requisitos': 'requisitos',
+        'inicio': 'home',
+        'mapa': 'content-mapa',
+        'procedimientos': 'procedimientos',
+        'inocuidad': 'inocuidad'
+    };
+
+    for (const [key, tabId] of Object.entries(tabs)) {
+        if (command.includes(key)) {
+            showTabContent(tabId);
+            speak(`Abriendo la pestaña de ${key}.`);
+            return;
+        }
     }
+
+    speak(`Lo siento ${currentUserName}, no encontré esa pestaña.`);
+}
+
+// Manejar el comando de cerrar sesión
+function handleLogoutCommand() {
+    auth.signOut().then(() => {
+        speak("Sesión cerrada con éxito. Hasta pronto.");
+        setTimeout(() => {
+            window.location.href = "login.html"; // Redirigir a la página de inicio de sesión
+        }, 2000);
+    }).catch((error) => {
+        console.error("Error al cerrar sesión:", error);
+        speak("Hubo un error al cerrar la sesión. Por favor, inténtalo nuevamente.");
+    });
 }
 
 // Manejar comandos para abrir archivos
@@ -1595,25 +1604,6 @@ function showTabContent(tabId) {
     } else {
         console.error(`No se encontró el botón de la pestaña con ID: tab-${tabId}`);
     }
-}
-
-// Función para cargar el mapa de procesos
-function loadMapaProcesos() {
-    const imgMapaProcesos = document.getElementById("mapa-procesos-img");
-    if (!imgMapaProcesos) {
-        console.error("No se encontró el elemento de imagen para el mapa.");
-        return;
-    }
-
-    const storageRef = ref(storage, 'path/to/your/image.jpg');
-    getDownloadURL(storageRef)
-        .then((url) => {
-            imgMapaProcesos.src = url;
-            imgMapaProcesos.style.display = 'block';
-        })
-        .catch((error) => {
-            console.error("Error al cargar el mapa de procesos:", error);
-        });
 }
 
 // Función para que Alfa hable
